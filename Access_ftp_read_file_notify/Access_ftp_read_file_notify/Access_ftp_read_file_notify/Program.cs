@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
 using System.Windows;
 using System.Net.Mail;
 using System.Net;
 using System.IO;
-using System.Collections;
 
 namespace Access_ftp_read_file_notify
 {
@@ -22,19 +17,17 @@ namespace Access_ftp_read_file_notify
             string filename_read = name_of_the_file[0];
 
 
+            
 
-            DateTime thisday = DateTime.Today;
-            string day = thisday.ToString("dd");
-            string month = thisday.ToString("MM");
-            string year = thisday.ToString("yyyy");
-            string filename = filename_read + year + "_" + month + "_" + day + "*.*";
-
+                        
             //reading the ftp server name and credentials
 
             string[] name_of_the_ftp = System.IO.File.ReadAllLines(@"name_of_the_ftp.config");
             string ftpname_read = name_of_the_ftp[0];
             string ftpusername_read = name_of_the_ftp[1];
             string ftppass_read = name_of_the_ftp[2];
+
+            
 
 
 
@@ -48,33 +41,60 @@ namespace Access_ftp_read_file_notify
             string MailFrom = lines[0];
             string MailFromPass = lines[1];
 
+            
+
 
 
             //accessing ftp and searching for the specific file 
 
             int file_found = 0;
 
+
+            
             try
             {
-                WebClient request = new WebClient();
-                string url = ftpname_read + filename;
-                request.Credentials = new NetworkCredential(ftpusername_read, ftppass_read);
-                string[] dirs = Directory.GetFiles(ftpname_read, filename);
-                foreach (string dir in dirs)
+
+                FtpWebRequest ftpRequest =
+                (FtpWebRequest)WebRequest.Create(ftpname_read);
+
+                ftpRequest.Credentials = new NetworkCredential(ftpusername_read, ftppass_read);
+                ftpRequest.Method = WebRequestMethods.Ftp.ListDirectory;
+                FtpWebResponse response = (FtpWebResponse)ftpRequest.GetResponse();
+                StreamReader streamReader = new StreamReader(response.GetResponseStream());
+
+                
+
+                string line = streamReader.ReadLine();
+                while (!string.IsNullOrEmpty(line))
                 {
-                    file_found = 1;
+                    if (line.Contains(filename_read))
+                    {
+                        line = streamReader.ReadLine();
+                        file_found = 1;
+                        
+
+
+                    }
+                    else
+                    {
+                        line = streamReader.ReadLine();
+                        
+                        
+                    }
                 }
-                Console.WriteLine(file_found);
-                Console.WriteLine(filename);
+
+                streamReader.Close();
+
                 if (file_found == 1)
                 {
-                    Console.WriteLine("The file is found");
+                    Console.WriteLine("The file "+ filename_read+" is found in the "+ftpname_read);
                 }
 
                 else
                 {
-                    Console.WriteLine("The file is not found");
+                    Console.WriteLine("The file " + filename_read + " is not found in the " + ftpname_read);
                 }
+
             }
             catch (Exception e)
             {
@@ -88,19 +108,27 @@ namespace Access_ftp_read_file_notify
 
 
 
+
             string Subject;
             string Message;
             
             if (file_found == 0)
             {
-                Subject = filename + "is not found";
+                Subject = filename_read + "is not found";
                 Message = "Dear all" + "\n\n" + "The file is not found in the ftp.";
             }
             else
             {
-                Subject = filename + "is found";
+                Subject = filename_read + "is found";
                 Message = "Dear all" + "\n\n" + "The file is found in the ftp.";
             }
+
+            
+
+            //sending the email 
+
+            
+            
 
             try
             {
@@ -124,11 +152,12 @@ namespace Access_ftp_read_file_notify
 
                 SmtpClient Smtp_Client = new SmtpClient();
 
-
-
-
-                Smtp_Client = new SmtpClient("smtp.office365.com", 587);
+                Smtp_Client = new SmtpClient("smtp.gmail.com", 587);
                 Smtp_Client.EnableSsl = true;
+
+
+                //Smtp_Client = new SmtpClient("smtp.office365.com", 587);
+               // Smtp_Client.EnableSsl = true;
 
 
 
@@ -145,7 +174,7 @@ namespace Access_ftp_read_file_notify
             }
 
 
-
+          
 
 
 
